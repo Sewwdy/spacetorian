@@ -164,8 +164,11 @@ internal class MonitorManager
 		var displayItems = await GetDisplayItemsAsync();
 
 		var basicItems = EnumerateBasicItems(deviceItems, displayItems).ToList();
-		if (basicItems.Count == 0)
+		if (basicItems.Count == 0 && SpacetorianTcpServer.ConnectedMonitors.Count == 0)
 			return Enumerable.Empty<IMonitor>();
+			
+		if (basicItems.Count == 0)
+			return SpacetorianTcpServer.ConnectedMonitors.Values;
 
 		var handleItems = DeviceContext.GetMonitorHandles();
 
@@ -305,15 +308,9 @@ internal class MonitorManager
 					monitorIndex: basicItem.MonitorIndex,
 					isInternal: basicItem.IsInternal);
 			}
-			
-			// Network Monitors
-			foreach (var netMonitor in SpacetorianTcpServer.ConnectedMonitors.Values)
-			{
-				yield return netMonitor;
-			}
 		}
 
-		return EnumerateMonitorItems();
+		return EnumerateMonitorItems().Concat(SpacetorianTcpServer.ConnectedMonitors.Values);
 	}
 
 	public static bool CheckMonitorsChanged()
