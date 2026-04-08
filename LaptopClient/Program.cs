@@ -14,6 +14,14 @@ namespace SpacetorianViewerClient
 {
     public class Program : Form
     {
+        private const string SingleInstanceMutexName = @"Local\SpacetorianViewerClient";
+
+        private static readonly string SettingsDirectoryPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "SpacetorianViewerClient");
+
+        private static readonly string SettingsFilePath = Path.Combine(SettingsDirectoryPath, "connection.txt");
+
         private NotifyIcon trayIcon;
         private ContextMenu trayMenu;
         private TcpClient client;
@@ -25,13 +33,24 @@ namespace SpacetorianViewerClient
         [STAThread]
         public static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Program());
+            bool isCreated;
+            using (var mutex = new Mutex(true, SingleInstanceMutexName, out isCreated))
+            {
+                if (!isCreated)
+                {
+                    return;
+                }
+
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
+                Application.Run(new Program());
+            }
         }
 
         public Program()
         {
+            LoadStoredConnection();
+
             trayMenu = new ContextMenu();
             trayMenu.MenuItems.Add("Open Viewer Client", OnOpenViewerClient);
             trayMenu.MenuItems.Add("Exit", OnExit);
@@ -51,10 +70,14 @@ namespace SpacetorianViewerClient
             trayIcon.Visible = true;
             trayIcon.MouseClick += OnTrayIconMouseClick;
 
-            this.WindowState = FormWindowState.Minimized;
-            this.ShowInTaskbar = false;
-            this.FormBorderStyle = FormBorderStyle.SizableToolWindow;
-            this.Load += (_, __) => this.Hide();
+            WindowState = FormWindowState.Minimized;
+            ShowInTaskbar = false;
+            FormBorderStyle = FormBorderStyle.SizableToolWindow;
+            Load += (_, __) =>
+            {
+                Hide();
+                BeginInvoke(new Action(() => OnOpenViewerClient(this, EventArgs.Empty)));
+            };
         }
 
         private void OnTrayIconMouseClick(object sender, MouseEventArgs e)
@@ -73,8 +96,49 @@ namespace SpacetorianViewerClient
                 {
                     lastIp = form.IPAddress;
                     lastName = form.DisplayName;
+                    SaveStoredConnection();
                     ConnectToServer(lastIp, lastName);
                 }
+            }
+        }
+
+        private void LoadStoredConnection()
+        {
+            try
+            {
+                if (!File.Exists(SettingsFilePath))
+                    return;
+
+                string[] lines = File.ReadAllLines(SettingsFilePath);
+                if ((lines.Length > 0) && !string.IsNullOrWhiteSpace(lines[0]))
+                {
+                    lastIp = lines[0].Trim();
+                }
+                if ((lines.Length > 1) && !string.IsNullOrWhiteSpace(lines[1]))
+                {
+                    lastName = lines[1].Trim();
+                }
+            }
+            catch
+            {
+                // Ignore storage read errors and continue with defaults.
+            }
+        }
+
+        private void SaveStoredConnection()
+        {
+            try
+            {
+                Directory.CreateDirectory(SettingsDirectoryPath);
+                File.WriteAllLines(SettingsFilePath, new[]
+                {
+                    lastIp ?? string.Empty,
+                    lastName ?? string.Empty,
+                });
+            }
+            catch
+            {
+                // Ignore storage write errors.
             }
         }
 
@@ -141,10 +205,13 @@ namespace SpacetorianViewerClient
             }
             finally
             {
-                Invoke(new Action(() =>
+                if (!IsDisposed)
                 {
-                    trayIcon.Text = "Spacetorian Viewer Client (Disconnected)";
-                }));
+                    BeginInvoke(new Action(() =>
+                    {
+                        trayIcon.Text = "Spacetorian Viewer Client (Disconnected)";
+                    }));
+                }
             }
         }
 
@@ -173,6 +240,7 @@ namespace SpacetorianViewerClient
         private void OnExit(object sender, EventArgs e)
         {
             trayIcon.Visible = false;
+            trayIcon.Dispose();
             cts?.Cancel();
             client?.Close();
             Application.Exit();
@@ -350,7 +418,7 @@ namespace SpacetorianViewerClient
                 AutoSize = true,
                 Padding = new Padding(14, 6, 14, 6),
                 BackColor = accent,
-                ForeColor = darkMode ? Color.White : Color.White,
+                ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Margin = new Padding(8, 0, 0, 0)
             };
@@ -401,14 +469,14 @@ namespace SpacetorianViewerClient
 
             int useDark = IsDarkModeEnabled() ? 1 : 0;
             int rounded = 2;
-            int backdropType = 2; // Mica main window backdrop.
+            int backdropType = 2;
 
-            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
-            DwmSetWindowAttribute(this.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref rounded, sizeof(int));
-            DwmSetWindowAttribute(this.Handle, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
+            DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
+            DwmSetWindowAttribute(Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref rounded, sizeof(int));
+            DwmSetWindowAttribute(Handle, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
 
             var margins = new MARGINS { cxLeftWidth = -1 };
-            DwmExtendFrameIntoClientArea(this.Handle, ref margins);
+            DwmExtendFrameIntoClientArea(Handle, ref margins);
         }
 
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
@@ -431,4 +499,3 @@ namespace SpacetorianViewerClient
         private static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
     }
 }
-
