@@ -68,24 +68,34 @@ internal static class SpacetorianTcpServer
 		var endpoint = client.Client.RemoteEndPoint?.ToString() ?? Guid.NewGuid().ToString();
 		string deviceId = "NETWORK\\" + endpoint;
 		
-		Debug.WriteLine($"[SpacetorianTcpServer] Client connected: {endpoint}");
-
-		var networkMonitor = new NetworkMonitorItem(
-			client,
-			deviceId,
-			$"Laptop ({endpoint.Split(':')[0]})"
-		);
-
-		ConnectedMonitors[deviceId] = networkMonitor;
-		
-		// Important: We should trigger a Rescan of monitors in the Monitorian system here.
-		// MonitorManager check changed checks monitor count.
-		// The easiest hack is to just let the periodic rescan find it, or we can invoke CheckMonitorsChanged manually if there was an event.
+		Debug.WriteLine(string.Format("[SpacetorianTcpServer] Client connected: {0}", endpoint));
 
 		try
 		{
-			using var stream = client.GetStream();
-			using var reader = new StreamReader(stream, Encoding.UTF8);
+			var stream = client.GetStream();
+			var reader = new StreamReader(stream, Encoding.UTF8);
+
+            // Wait for HELLO message
+            string name = string.Format("Laptop ({0})", endpoint.Split(':')[0]);
+            string firstLine = await reader.ReadLineAsync();
+            if (firstLine != null && firstLine.StartsWith("HELLO:"))
+            {
+                name = firstLine.Substring(6);
+            }
+
+            var networkMonitor = new NetworkMonitorItem(
+                client,
+                deviceId,
+                name
+            );
+
+            ConnectedMonitors[deviceId] = networkMonitor;
+            
+            // If the first line was a BRIGHTNESS status update, parse it
+            if (firstLine != null && firstLine.StartsWith("BRIGHTNESS:"))
+            {
+                if (int.TryParse(firstLine.Substring(11), out int b)) { networkMonitor.UpdateLocalBrightnessValue(b); }
+            }
 
 			while (!token.IsCancellationRequested && client.Connected)
 			{
@@ -110,9 +120,8 @@ internal static class SpacetorianTcpServer
 		finally
 		{
 			ConnectedMonitors.TryRemove(deviceId, out _);
-			networkMonitor.Disconnect();
 			client.Close();
-			Debug.WriteLine($"[SpacetorianTcpServer] Client disconnected: {endpoint}");
+			Debug.WriteLine(string.Format("[SpacetorianTcpServer] Client disconnected: {0}", endpoint));
 		}
 	}
 }
