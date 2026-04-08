@@ -1,14 +1,16 @@
 using System;
 using System.Drawing;
 using System.IO;
-using System.Net.Sockets;
 using System.Management;
+using System.Net.Sockets;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
-namespace SpacetorianLaptop
+namespace SpacetorianViewerClient
 {
     public class Program : Form
     {
@@ -16,6 +18,9 @@ namespace SpacetorianLaptop
         private ContextMenu trayMenu;
         private TcpClient client;
         private CancellationTokenSource cts;
+
+        private string lastIp = "127.0.0.1";
+        private string lastName = Environment.MachineName;
 
         [STAThread]
         public static void Main()
@@ -27,39 +32,42 @@ namespace SpacetorianLaptop
 
         public Program()
         {
-            // Set up a simple ContextMenu
             trayMenu = new ContextMenu();
-            trayMenu.MenuItems.Add("Connect...", OnConnect);
+            trayMenu.MenuItems.Add("Open Viewer Client", OnOpenViewerClient);
             trayMenu.MenuItems.Add("Exit", OnExit);
 
-            // Create tray icon
             trayIcon = new NotifyIcon();
-            trayIcon.Text = "Spacetorian Laptop Client";
-            
-            // Generate a simple colored icon since we don't have an .ico
+            trayIcon.Text = "Spacetorian Viewer Client";
+
             Bitmap bmp = new Bitmap(16, 16);
             using (Graphics g = Graphics.FromImage(bmp))
             {
-                g.Clear(Color.DarkBlue);
+                g.Clear(Color.FromArgb(24, 95, 191));
                 g.FillEllipse(Brushes.White, 3, 3, 10, 10);
             }
             trayIcon.Icon = Icon.FromHandle(bmp.GetHicon());
-            
+
             trayIcon.ContextMenu = trayMenu;
             trayIcon.Visible = true;
-            
+            trayIcon.MouseClick += OnTrayIconMouseClick;
+
             this.WindowState = FormWindowState.Minimized;
             this.ShowInTaskbar = false;
             this.FormBorderStyle = FormBorderStyle.SizableToolWindow;
-            this.Load += (s, e) => { this.Hide(); OnConnect(null, null); };
+            this.Load += (_, __) => this.Hide();
         }
 
-        private string lastIp = "127.0.0.1";
-        private string lastName = Environment.MachineName;
-
-        private void OnConnect(object sender, EventArgs e)
+        private void OnTrayIconMouseClick(object sender, MouseEventArgs e)
         {
-            using (var form = new ConnectForm(lastIp, lastName))
+            if (e.Button == MouseButtons.Left)
+            {
+                OnOpenViewerClient(sender, EventArgs.Empty);
+            }
+        }
+
+        private void OnOpenViewerClient(object sender, EventArgs e)
+        {
+            using (var form = new ViewerConnectForm(lastIp, lastName))
             {
                 if (form.ShowDialog() == DialogResult.OK)
                 {
@@ -74,7 +82,7 @@ namespace SpacetorianLaptop
         {
             if (client != null && client.Connected)
             {
-                if (cts != null) cts.Cancel();
+                cts?.Cancel();
                 client.Close();
             }
 
@@ -83,21 +91,25 @@ namespace SpacetorianLaptop
 
             try
             {
-                trayIcon.Text = string.Format("Connecting to {0}...", ipStr);
+                trayIcon.Text = string.Format("Viewer Client: Connecting to {0}...", ipStr);
                 await client.ConnectAsync(ipStr, 8080);
-                trayIcon.Text = string.Format("Connected to {0}", ipStr);
-                
-                // Send HELLO
+                trayIcon.Text = string.Format("Viewer Client: Connected to {0}", ipStr);
+
                 var stream = client.GetStream();
                 var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
                 await writer.WriteLineAsync("HELLO:" + name);
 
-                Task.Run(() => HandleConnectionAsync(cts.Token));
+                _ = Task.Run(() => HandleConnectionAsync(cts.Token));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(string.Format("Failed to connect to {0}: {1}", ipStr, ex.Message), "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                trayIcon.Text = "Spacetorian Laptop Client";
+                MessageBox.Show(
+                    string.Format("Failed to connect to {0}: {1}", ipStr, ex.Message),
+                    "Viewer Client Connection Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+
+                trayIcon.Text = "Spacetorian Viewer Client";
             }
         }
 
@@ -111,14 +123,14 @@ namespace SpacetorianLaptop
                     while (!token.IsCancellationRequested && client.Connected)
                     {
                         string line = await reader.ReadLineAsync();
-                        if (line == null) break;
+                        if (line == null)
+                            break;
 
                         if (line.StartsWith("SET_BRIGHTNESS:"))
                         {
-                            int b;
-                            if (int.TryParse(line.Substring(15), out b))
+                            if (int.TryParse(line.Substring(15), out int brightness))
                             {
-                                SetBrightness(b);
+                                SetBrightness(brightness);
                             }
                         }
                     }
@@ -126,12 +138,12 @@ namespace SpacetorianLaptop
             }
             catch
             {
-                // Disconnected
             }
             finally
             {
-                Invoke(new Action(() => {
-                    trayIcon.Text = "Spacetorian Laptop Client (Disconnected)";
+                Invoke(new Action(() =>
+                {
+                    trayIcon.Text = "Spacetorian Viewer Client (Disconnected)";
                 }));
             }
         }
@@ -143,14 +155,12 @@ namespace SpacetorianLaptop
                 var scope = new ManagementScope("root\\WMI");
                 var query = new SelectQuery("WmiMonitorBrightnessMethods");
                 using (var searcher = new ManagementObjectSearcher(scope, query))
+                using (var objectCollection = searcher.Get())
                 {
-                    using (var objectCollection = searcher.Get())
+                    foreach (ManagementObject mObj in objectCollection)
                     {
-                        foreach (ManagementObject mObj in objectCollection)
-                        {
-                            mObj.InvokeMethod("WmiSetBrightness", new object[] { uint.MaxValue, (byte)brightness });
-                            break;
-                        }
+                        mObj.InvokeMethod("WmiSetBrightness", new object[] { uint.MaxValue, (byte)brightness });
+                        break;
                     }
                 }
             }
@@ -163,58 +173,262 @@ namespace SpacetorianLaptop
         private void OnExit(object sender, EventArgs e)
         {
             trayIcon.Visible = false;
-            if (cts != null) cts.Cancel();
-            if (client != null) client.Close();
+            cts?.Cancel();
+            client?.Close();
             Application.Exit();
         }
     }
 
-    public class ConnectForm : Form
+    public class ViewerConnectForm : Form
     {
         public string IPAddress { get; private set; }
         public string DisplayName { get; private set; }
 
-        private TextBox txtIp;
-        private TextBox txtName;
+        private readonly TextBox txtIp;
+        private readonly TextBox txtName;
 
-        public ConnectForm(string defaultIp, string defaultName)
+        public ViewerConnectForm(string defaultIp, string defaultName)
         {
-            Text = "Connect to Spacetorian Server";
-            Size = new Size(300, 200);
-            FormBorderStyle = FormBorderStyle.FixedDialog;
+            Text = "Spacetorian Viewer Client";
+            ClientSize = new Size(420, 260);
+            StartPosition = FormStartPosition.CenterScreen;
+            FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
-            StartPosition = FormStartPosition.CenterScreen;
+            Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 204);
 
-            var lblIp = new Label() { Text = "Main PC IP:", Left = 10, Top = 20, Width = 80 };
-            txtIp = new TextBox() { Text = defaultIp, Left = 100, Top = 20, Width = 150 };
+            bool darkMode = IsDarkModeEnabled();
+            Color backgroundColor = darkMode ? Color.FromArgb(32, 32, 32) : SystemColors.Window;
+            Color inputColor = darkMode ? Color.FromArgb(44, 44, 48) : Color.FromArgb(245, 245, 245);
+            Color textColor = darkMode ? Color.WhiteSmoke : SystemColors.ControlText;
+            Color accentColor = SystemColors.Highlight;
 
-            var lblName = new Label() { Text = "Display Name:", Left = 10, Top = 60, Width = 80 };
-            txtName = new TextBox() { Text = defaultName, Left = 100, Top = 60, Width = 150 };
+            BackColor = backgroundColor;
+            ForeColor = textColor;
 
-            var btnOk = new Button() { Text = "Connect", Left = 100, Top = 110, Width = 70 };
-            btnOk.Click += (s, e) => {
-                IPAddress = txtIp.Text.Trim();
-                DisplayName = txtName.Text.Trim();
-                if (!string.IsNullOrEmpty(IPAddress)) 
-                {
-                    DialogResult = DialogResult.OK;
-                    Close();
-                }
+            var root = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                Padding = new Padding(20, 18, 20, 18),
+                ColumnCount = 1,
+                RowCount = 7,
+                BackColor = Color.Transparent,
+            };
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 10));
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+            root.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            var title = new Label
+            {
+                Text = "Viewer Client",
+                AutoSize = true,
+                Font = new Font("Segoe UI Semibold", 16F, FontStyle.Bold, GraphicsUnit.Point, 204),
+                ForeColor = textColor,
+                Margin = new Padding(0, 0, 0, 2)
             };
 
-            var btnCancel = new Button() { Text = "Cancel", Left = 180, Top = 110, Width = 70 };
-            btnCancel.Click += (s, e) => { DialogResult = DialogResult.Cancel; Close(); };
+            var subtitle = new Label
+            {
+                Text = "Connect this PC as a remote brightness viewer.",
+                AutoSize = true,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point, 204),
+                ForeColor = darkMode ? Color.Gainsboro : Color.FromArgb(70, 70, 70),
+                Margin = new Padding(0, 0, 0, 0)
+            };
 
-            Controls.Add(lblIp);
-            Controls.Add(txtIp);
-            Controls.Add(lblName);
-            Controls.Add(txtName);
-            Controls.Add(btnOk);
-            Controls.Add(btnCancel);
-            
-            AcceptButton = btnOk;
+            var fields = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                ColumnCount = 2,
+                RowCount = 2,
+                AutoSize = true,
+                Margin = new Padding(0),
+            };
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 130));
+            fields.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+
+            var lblIp = CreateLabel("Main PC IP", textColor);
+            var lblName = CreateLabel("Viewer Name", textColor);
+
+            txtIp = CreateTextBox(defaultIp, inputColor, textColor);
+            txtName = CreateTextBox(defaultName, inputColor, textColor);
+
+            fields.Controls.Add(lblIp, 0, 0);
+            fields.Controls.Add(txtIp, 1, 0);
+            fields.Controls.Add(lblName, 0, 1);
+            fields.Controls.Add(txtName, 1, 1);
+
+            var buttonBar = new FlowLayoutPanel
+            {
+                FlowDirection = FlowDirection.RightToLeft,
+                Dock = DockStyle.Fill,
+                Margin = new Padding(0),
+                AutoSize = true,
+                WrapContents = false
+            };
+
+            var btnConnect = CreatePrimaryButton("Connect", accentColor, darkMode);
+            btnConnect.Click += OnConnectClicked;
+
+            var btnCancel = CreateSecondaryButton("Cancel", darkMode, textColor);
+            btnCancel.Click += (_, __) =>
+            {
+                DialogResult = DialogResult.Cancel;
+                Close();
+            };
+
+            buttonBar.Controls.Add(btnConnect);
+            buttonBar.Controls.Add(btnCancel);
+
+            root.Controls.Add(title, 0, 0);
+            root.Controls.Add(subtitle, 0, 1);
+            root.Controls.Add(fields, 0, 3);
+            root.Controls.Add(buttonBar, 0, 6);
+
+            Controls.Add(root);
+
+            AcceptButton = btnConnect;
             CancelButton = btnCancel;
         }
+
+        protected override void OnHandleCreated(EventArgs e)
+        {
+            base.OnHandleCreated(e);
+            ApplyWindows11Backdrop();
+        }
+
+        private void OnConnectClicked(object sender, EventArgs e)
+        {
+            string ip = txtIp.Text.Trim();
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                MessageBox.Show("Please enter Main PC IP.", "Viewer Client", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            IPAddress = ip;
+            DisplayName = string.IsNullOrWhiteSpace(txtName.Text) ? Environment.MachineName : txtName.Text.Trim();
+            DialogResult = DialogResult.OK;
+            Close();
+        }
+
+        private static Label CreateLabel(string text, Color color)
+        {
+            return new Label
+            {
+                Text = text,
+                ForeColor = color,
+                AutoSize = true,
+                Margin = new Padding(0, 9, 8, 0),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point, 204)
+            };
+        }
+
+        private static TextBox CreateTextBox(string value, Color backColor, Color foreColor)
+        {
+            return new TextBox
+            {
+                Text = value,
+                Width = 220,
+                Margin = new Padding(0, 4, 0, 8),
+                BorderStyle = BorderStyle.FixedSingle,
+                BackColor = backColor,
+                ForeColor = foreColor,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point, 204)
+            };
+        }
+
+        private static Button CreatePrimaryButton(string text, Color accent, bool darkMode)
+        {
+            return new Button
+            {
+                Text = text,
+                AutoSize = true,
+                Padding = new Padding(14, 6, 14, 6),
+                BackColor = accent,
+                ForeColor = darkMode ? Color.White : Color.White,
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(8, 0, 0, 0)
+            };
+        }
+
+        private static Button CreateSecondaryButton(string text, bool darkMode, Color textColor)
+        {
+            return new Button
+            {
+                Text = text,
+                AutoSize = true,
+                Padding = new Padding(14, 6, 14, 6),
+                BackColor = darkMode ? Color.FromArgb(56, 56, 56) : Color.FromArgb(233, 233, 233),
+                ForeColor = textColor,
+                FlatStyle = FlatStyle.Flat,
+                Margin = new Padding(8, 0, 0, 0)
+            };
+        }
+
+        private static bool IsDarkModeEnabled()
+        {
+            try
+            {
+                object value = Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                    "AppsUseLightTheme",
+                    1);
+
+                if (value is int mode)
+                {
+                    return mode == 0;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        private void ApplyWindows11Backdrop()
+        {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                return;
+
+            if (Environment.OSVersion.Version < new Version(10, 0, 22000, 0))
+                return;
+
+            int useDark = IsDarkModeEnabled() ? 1 : 0;
+            int rounded = 2;
+            int backdropType = 2; // Mica main window backdrop.
+
+            DwmSetWindowAttribute(this.Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
+            DwmSetWindowAttribute(this.Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref rounded, sizeof(int));
+            DwmSetWindowAttribute(this.Handle, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
+
+            var margins = new MARGINS { cxLeftWidth = -1 };
+            DwmExtendFrameIntoClientArea(this.Handle, ref margins);
+        }
+
+        private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
+        private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MARGINS
+        {
+            public int cxLeftWidth;
+            public int cxRightWidth;
+            public int cyTopHeight;
+            public int cyBottomHeight;
+        }
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmSetWindowAttribute(IntPtr hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
     }
 }
+
