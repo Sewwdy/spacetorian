@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -60,6 +60,8 @@ public class AppControllerCore
 		_displayInformationWatcher = new DisplayInformationWatcher();
 		_brightnessWatcher = new BrightnessWatcher();
 		_brightnessConnector = new BrightnessConnector();
+
+		SpacetorianTcpServer.ConnectedMonitorsChanged += OnConnectedMonitorsChanged;
 	}
 
 	public virtual async Task InitiateAsync()
@@ -153,6 +155,8 @@ public class AppControllerCore
 		_displayInformationWatcher.Dispose();
 		_brightnessWatcher.Dispose();
 		_brightnessConnector.Dispose();
+
+		SpacetorianTcpServer.ConnectedMonitorsChanged -= OnConnectedMonitorsChanged;
 	}
 
 	protected virtual Task<string> HandleRequestAsync(IReadOnlyCollection<string> args)
@@ -282,6 +286,17 @@ public class AppControllerCore
 	}
 
 	#region Monitors
+
+	private void OnConnectedMonitorsChanged(object sender, EventArgs e)
+	{
+		if (_current.Dispatcher.HasShutdownStarted || _current.Dispatcher.HasShutdownFinished)
+			return;
+
+		_ = _current.Dispatcher.BeginInvoke(new Action(() =>
+		{
+			OnMonitorsChangeInferred(nameof(SpacetorianTcpServer));
+		}));
+	}
 
 	protected virtual async void OnMonitorsChangeInferred(object sender, ICountEventArgs e = null)
 	{
@@ -604,3 +619,4 @@ public class AppControllerCore
 
 	#endregion
 }
+

@@ -101,6 +101,7 @@ internal class MonitorManager
 	#endregion
 
 	private static HashSet<string> _foundIds;
+	private static HashSet<string> _foundNetworkIds = new(StringComparer.OrdinalIgnoreCase);
 	private static bool _isDisplayMonitorAvailable = true; // Default
 
 	private static async Task<DisplayItem[]> GetDisplayItemsAsync()
@@ -161,14 +162,17 @@ internal class MonitorManager
 		var deviceItems = DeviceContext.EnumerateMonitorDevices().ToArray();
 		_foundIds = new HashSet<string>(deviceItems.Select(x => x.DeviceInstanceId));
 
+		var networkMonitorItems = SpacetorianTcpServer.ConnectedMonitors.Values.Cast<IMonitor>().ToArray();
+		_foundNetworkIds = new HashSet<string>(networkMonitorItems.Select(x => x.DeviceInstanceId), StringComparer.OrdinalIgnoreCase);
+
 		var displayItems = await GetDisplayItemsAsync();
 
 		var basicItems = EnumerateBasicItems(deviceItems, displayItems).ToList();
-		if (basicItems.Count == 0 && SpacetorianTcpServer.ConnectedMonitors.Count == 0)
+		if (basicItems.Count == 0 && networkMonitorItems.Length == 0)
 			return Enumerable.Empty<IMonitor>();
-			
+
 		if (basicItems.Count == 0)
-			return SpacetorianTcpServer.ConnectedMonitors.Values;
+			return networkMonitorItems;
 
 		var handleItems = DeviceContext.GetMonitorHandles();
 
@@ -310,7 +314,7 @@ internal class MonitorManager
 			}
 		}
 
-		return EnumerateMonitorItems().Concat(SpacetorianTcpServer.ConnectedMonitors.Values);
+		return EnumerateMonitorItems().Concat(networkMonitorItems);
 	}
 
 	public static bool CheckMonitorsChanged()
@@ -323,6 +327,16 @@ internal class MonitorManager
 
 		var oldIds = _foundIds;
 		_foundIds = new HashSet<string>(DeviceContext.EnumerateMonitorDevices().Select(x => x.DeviceInstanceId));
+
+		var oldNetworkIds = _foundNetworkIds;
+		var currentNetworkIds = new HashSet<string>(SpacetorianTcpServer.ConnectedMonitors.Keys, StringComparer.OrdinalIgnoreCase);
+		_foundNetworkIds = currentNetworkIds;
+
+		if ((oldNetworkIds is not null) && !oldNetworkIds.SetEquals(currentNetworkIds))
+		{
+			return true;
+		}
+
 		return (oldIds?.SetEquals(_foundIds) is false);
 	}
 
@@ -540,3 +554,4 @@ internal class MonitorManager
 
 	#endregion
 }
+
