@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -42,13 +42,18 @@ public class AppKeeper
 		{
 			ConsoleService.WriteLine(response);
 		}
-		return success;
+			if (success)
+			{
+				SpacetorianTcpServer.StartServer();
+			}
+			return success;
 	}
 
 	public void End()
 	{
 		StartupAgent.Dispose();
 		UnsubscribeExceptions();
+		SpacetorianTcpServer.StopServer();
 		ConsoleService.EndWrite();
 	}
 

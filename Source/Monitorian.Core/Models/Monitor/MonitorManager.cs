@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -304,6 +304,12 @@ internal class MonitorManager
 					displayIndex: basicItem.DisplayIndex,
 					monitorIndex: basicItem.MonitorIndex,
 					isInternal: basicItem.IsInternal);
+			}
+			
+			// Network Monitors
+			foreach (var netMonitor in SpacetorianTcpServer.ConnectedMonitors.Values)
+			{
+				yield return netMonitor;
 			}
 		}
 
