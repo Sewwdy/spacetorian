@@ -1,4 +1,4 @@
-﻿using System.Resources;
+using System.Resources;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Monitorian.Core")]
-[assembly: AssemblyCopyright("Copyright © 2019 emoacht")]
+[assembly: AssemblyCopyright("Copyright (c) 2017 emoacht; modifications Copyright (c) 2026 Sewwdy")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -39,3 +39,4 @@ using System.Runtime.InteropServices;
 
 // For unit test
 [assembly: InternalsVisibleTo("Monitorian.Test")]
+

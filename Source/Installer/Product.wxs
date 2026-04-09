@@ -1,9 +1,9 @@
-﻿<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
      xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui"
      xmlns:netfx="http://wixtoolset.org/schemas/v4/wxs/netfx">
-  <Package Name="Monitorian" Manufacturer="emoacht" Version="4.14.0"
+  <Package Name="Spacetorian" Manufacturer="Sewwdy" Version="4.14.0"
            Language="1033" Codepage="1252" UpgradeCode="{81A4D148-75D3-462E-938D-8C208FB48E3C}">
-    <SummaryInformation Description="Installer for Monitorian"/>
+    <SummaryInformation Description="Installer for Spacetorian"/>
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."/>
 
@@ -27,12 +27,12 @@
     <WixVariable Id="WixUIDialogBmp" Value="Resources\dialog.png"/>
     <WixVariable Id="WixUILicenseRtf" Value="Resources\License.rtf"/>
 
-    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.Monitorian.ProjectName) now"/>
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch Spacetorian now"/>
     <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1"/>
 
     <!-- Program Files -->
     <StandardDirectory Id="ProgramFilesFolder">
-      <Directory Id="INSTALLDIR" Name="$(var.Monitorian.ProjectName)"/>
+      <Directory Id="INSTALLDIR" Name="Spacetorian"/>
     </StandardDirectory>
 
     <!-- Program Menu -->
@@ -40,7 +40,7 @@
 
     <!-- Local AppData -->
     <StandardDirectory Id="LocalAppDataFolder">
-      <Directory Id="ApplicationLocalAppDataFolder" Name="$(var.Monitorian.ProjectName)"/>
+      <Directory Id="ApplicationLocalAppDataFolder" Name="Spacetorian"/>
     </StandardDirectory>
 
     <DirectoryRef Id="INSTALLDIR">
@@ -220,7 +220,7 @@
     <!-- Shortcut in Program Menu -->
     <StandardDirectory Id="ProgramMenuFolder">
       <Component Id="ApplicationShortcut" Guid="{FEE3D455-9968-475E-9B57-44826C4BF63F}">
-        <Shortcut Id="ApplicationProgramMenuShortcut" Name="$(var.Monitorian.ProjectName)"
+        <Shortcut Id="ApplicationProgramMenuShortcut" Name="Spacetorian"
                   Target="[#MainExecutable]" WorkingDirectory="INSTALLDIR"
                   Icon="AppIcon.exe" IconIndex="0">
           <ShortcutProperty Key="System.AppUserModel.ID" Value="[ProductName]"/>

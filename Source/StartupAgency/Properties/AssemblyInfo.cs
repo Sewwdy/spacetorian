@@ -1,4 +1,4 @@
-﻿using System.Resources;
+using System.Resources;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -11,7 +11,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("StartupAgency")]
-[assembly: AssemblyCopyright("Copyright © 2018 emoacht")]
+[assembly: AssemblyCopyright("Copyright (c) 2017 emoacht; modifications Copyright (c) 2026 Sewwdy")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -36,3 +36,4 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyVersion("4.11.0.0")]
 [assembly: AssemblyFileVersion("4.11.0.0")]
 [assembly: NeutralResourcesLanguage("en-US")]
+

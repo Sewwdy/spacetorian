@@ -12,7 +12,7 @@ using System.Windows;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Spacetorian")]
-[assembly: AssemblyCopyright("Copyright © 2017 emoacht")]
+[assembly: AssemblyCopyright("Copyright (c) 2017 emoacht; modifications Copyright (c) 2026 Sewwdy")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -55,3 +55,4 @@ using System.Windows;
 [assembly: AssemblyFileVersion("4.14.0.0")]
 [assembly: Guid("a4cc5362-9b08-465b-ad64-5cfabc72a4c7")]
 [assembly: NeutralResourcesLanguage("en-US")]
+

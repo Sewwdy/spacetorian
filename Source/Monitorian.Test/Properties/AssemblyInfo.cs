@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("Monitorian.Test")]
-[assembly: AssemblyCopyright("Copyright © 2018 emoacht")]
+[assembly: AssemblyCopyright("Copyright (c) 2017 emoacht; modifications Copyright (c) 2026 Sewwdy")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
@@ -18,3 +18,4 @@ using System.Runtime.InteropServices;
 // [assembly: AssemblyVersion("1.0.*")]
 [assembly: AssemblyVersion("4.11.2.0")]
 [assembly: AssemblyFileVersion("4.11.2.0")]
+
