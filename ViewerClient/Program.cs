@@ -48,6 +48,9 @@ namespace SpacetorianViewerClient
 
         private readonly object writerLock = new object();
         private readonly object reconnectSync = new object();
+        private readonly object brightnessQueueLock = new object();
+        private int pendingBrightness = -1;
+        private int brightnessWorkerActive;
 
         private NotifyIcon trayIcon;
         private ContextMenu trayMenu;
@@ -363,6 +366,8 @@ namespace SpacetorianViewerClient
             DisconnectCurrentConnection();
 
             var nextClient = new TcpClient();
+            nextClient.NoDelay = true;
+            nextClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
             var nextCts = new CancellationTokenSource();
             StreamWriter nextWriter = null;
 
@@ -469,10 +474,7 @@ namespace SpacetorianViewerClient
                         {
                             if (int.TryParse(line.Substring(15), out int brightness))
                             {
-                                if (SetBrightness(brightness))
-                                {
-                                    SendBrightness(brightness);
-                                }
+                                EnqueueBrightnessChange(brightness, activeCts.Token);
                             }
                         }
                     }
@@ -575,6 +577,65 @@ namespace SpacetorianViewerClient
             catch
             {
             }
+
+            lock (brightnessQueueLock)
+            {
+                pendingBrightness = -1;
+            }
+        }
+
+        private void EnqueueBrightnessChange(int brightness, CancellationToken token)
+        {
+            lock (brightnessQueueLock)
+            {
+                pendingBrightness = brightness;
+            }
+
+            if (Interlocked.CompareExchange(ref brightnessWorkerActive, 1, 0) == 0)
+            {
+                _ = Task.Run(() => ProcessBrightnessQueueAsync(token));
+            }
+        }
+
+        private async Task ProcessBrightnessQueueAsync(CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested && !isExiting)
+                {
+                    int brightness;
+                    lock (brightnessQueueLock)
+                    {
+                        brightness = pendingBrightness;
+                        pendingBrightness = -1;
+                    }
+
+                    if (brightness < 0)
+                        break;
+
+                    if (SetBrightness(brightness))
+                    {
+                        SendBrightness(brightness);
+                    }
+
+                    await Task.Yield();
+                }
+            }
+            finally
+            {
+                Interlocked.Exchange(ref brightnessWorkerActive, 0);
+
+                bool hasPending;
+                lock (brightnessQueueLock)
+                {
+                    hasPending = (pendingBrightness >= 0);
+                }
+
+                if (hasPending && !token.IsCancellationRequested && !isExiting && (Interlocked.CompareExchange(ref brightnessWorkerActive, 1, 0) == 0))
+                {
+                    _ = Task.Run(() => ProcessBrightnessQueueAsync(token));
+                }
+            }
         }
 
         private int? TryGetCurrentBrightness()
@@ -609,7 +670,7 @@ namespace SpacetorianViewerClient
             {
                 lock (writerLock)
                 {
-                    if (writer == null || client == null || !client.Connected)
+                    if (writer == null || client == null)
                         return;
 
                     writer.WriteLine("BRIGHTNESS:" + brightness.ToString());
@@ -631,7 +692,7 @@ namespace SpacetorianViewerClient
                 {
                     foreach (ManagementObject mObj in objectCollection)
                     {
-                        mObj.InvokeMethod("WmiSetBrightness", new object[] { uint.MaxValue, (byte)brightness });
+                        mObj.InvokeMethod("WmiSetBrightness", new object[] { 0u, (byte)brightness });
                         return true;
                     }
                 }
@@ -1282,4 +1343,3 @@ namespace SpacetorianViewerClient
         }
     }
 }
-

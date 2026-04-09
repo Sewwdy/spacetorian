@@ -63,6 +63,8 @@ internal static class SpacetorianTcpServer
 			try
 			{
 				var client = await _listener.AcceptTcpClientAsync();
+				client.NoDelay = true;
+				client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
 				_ = Task.Run(() => HandleClientAsync(client, token));
 			}
 			catch (ObjectDisposedException)
@@ -145,4 +147,3 @@ internal static class SpacetorianTcpServer
 		ConnectedMonitorsChanged?.Invoke(null, EventArgs.Empty);
 	}
 }
-
