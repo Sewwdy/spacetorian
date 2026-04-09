@@ -44,9 +44,8 @@ internal class NetworkMonitorItem : MonitorItem
 
 	public override AccessResult UpdateBrightness(int value = -1)
 	{
-		// Network brightness is pushed asynchronously by the viewer client.
-		// Poll requests should not mark the monitor uncontrollable when a transient send fails.
-		TrySendCommand("GET_BRIGHTNESS", suppressFailureLog: true);
+		// Brightness is pushed by the viewer client on connect and after successful updates.
+		// Avoid active polling here to keep control stable when remote desktop viewers are foregrounded.
 		return AccessResult.Succeeded;
 	}
 
@@ -89,7 +88,6 @@ internal class NetworkMonitorItem : MonitorItem
 					Debug.WriteLine($"[NetworkMonitorItem] Command send error: {ex.Message}");
 				}
 
-				DisposeWriterUnsafe();
 				return false;
 			}
 		}
