@@ -10,6 +10,7 @@ namespace Monitorian.Core.Models.Monitor;
 internal class NetworkMonitorItem : MonitorItem
 {
 	private readonly TcpClient _client;
+	private readonly object _writerLock = new();
 	private StreamWriter _writer;
 
 	public override bool IsBrightnessSupported => true;
@@ -37,26 +38,15 @@ internal class NetworkMonitorItem : MonitorItem
 
 	public void UpdateLocalBrightnessValue(int value)
 	{
-		this.Brightness = value;
-		this.BrightnessSystemAdjusted = value;
+		Brightness = value;
+		BrightnessSystemAdjusted = value;
 	}
 
 	public override AccessResult UpdateBrightness(int value = -1)
 	{
-		// Ask the remote client for its brightness
-		if (_client.Connected && _writer != null)
-		{
-			try
-			{
-				_writer.WriteLine("GET_BRIGHTNESS");
-			}
-			catch (Exception ex)
-			{
-				Debug.WriteLine($"[NetworkMonitorItem] GetBrightness error: {ex.Message}");
-				return AccessResult.Failed;
-			}
-		}
-		// The client will respond with "BRIGHTNESS:50" asynchronously which updates our local properties.
+		// Network brightness is pushed asynchronously by the viewer client.
+		// Poll requests should not mark the monitor uncontrollable when a transient send fails.
+		TrySendCommand("GET_BRIGHTNESS", suppressFailureLog: true);
 		return AccessResult.Succeeded;
 	}
 
@@ -65,30 +55,67 @@ internal class NetworkMonitorItem : MonitorItem
 		if (brightness < 0 || brightness > 100)
 			return AccessResult.Failed;
 
-		if (_client.Connected && _writer != null)
+		if (TrySendCommand($"SET_BRIGHTNESS:{brightness}", suppressFailureLog: false))
 		{
+			UpdateLocalBrightnessValue(brightness);
+			return AccessResult.Succeeded;
+		}
+
+		return new AccessResult(AccessStatus.TransmissionFailed, "Viewer client is unavailable.");
+	}
+
+	private bool TrySendCommand(string command, bool suppressFailureLog)
+	{
+		lock (_writerLock)
+		{
+			if (_writer is null || !_client.Connected)
+			{
+				if (!suppressFailureLog)
+				{
+					Debug.WriteLine("[NetworkMonitorItem] Command skipped because client is disconnected.");
+				}
+				return false;
+			}
+
 			try
 			{
-				_writer.WriteLine($"SET_BRIGHTNESS:{brightness}");
-				UpdateLocalBrightnessValue(brightness);
-				return AccessResult.Succeeded;
+				_writer.WriteLine(command);
+				return true;
 			}
 			catch (Exception ex)
 			{
-				Debug.WriteLine($"[NetworkMonitorItem] SetBrightness error: {ex.Message}");
-				return AccessResult.Failed;
+				if (!suppressFailureLog)
+				{
+					Debug.WriteLine($"[NetworkMonitorItem] Command send error: {ex.Message}");
+				}
+
+				DisposeWriterUnsafe();
+				return false;
 			}
 		}
-		return AccessResult.Failed;
 	}
 
 	public void Disconnect()
+	{
+		lock (_writerLock)
+		{
+			DisposeWriterUnsafe();
+		}
+	}
+
+	private void DisposeWriterUnsafe()
 	{
 		try
 		{
 			_writer?.Dispose();
 		}
-		catch { }
+		catch
+		{
+		}
+		finally
+		{
+			_writer = null;
+		}
 	}
 
 	protected override void Dispose(bool disposing)
