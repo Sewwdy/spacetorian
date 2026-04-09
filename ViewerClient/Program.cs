@@ -209,7 +209,7 @@ namespace SpacetorianViewerClient
             }
 
             ShowReconnectWindow();
-            _ = Task.Run(() => ReconnectLoopAsync(reconnectCts.Token));
+            _ = Task.Run(() => ReconnectLoopAsync(reconnectCts));
         }
 
         private void StopReconnectLoop(bool closeWindow)
@@ -239,44 +239,59 @@ namespace SpacetorianViewerClient
             }
         }
 
-        private async Task ReconnectLoopAsync(CancellationToken token)
+        private async Task ReconnectLoopAsync(CancellationTokenSource reconnectCts)
         {
-            while (!token.IsCancellationRequested && !isExiting)
+            CancellationToken token = reconnectCts.Token;
+            try
             {
-                UpdateReconnectWindow(
-                    "Trying to reconnect",
-                    string.Format("Main PC: {0}\r\nViewer: {1}", lastIp, lastName));
-
-                ConnectionAttemptResult result = await ConnectToServerAsync(lastIp, lastName);
-                if (result.Success)
+                while (!token.IsCancellationRequested && !isExiting)
                 {
-                    RunOnUiThread(CloseReconnectWindowInternal);
-                    return;
-                }
-
-                for (int seconds = 10; seconds > 0; seconds--)
-                {
-                    if (token.IsCancellationRequested || isExiting)
-                        return;
-
                     UpdateReconnectWindow(
                         "Trying to reconnect",
-                        string.Format(
-                            "{0}\r\nRetrying in {1}s.\r\nClose this window to exit Viewer Client.",
-                            result.Message,
-                            seconds));
+                        string.Format("Main PC: {0}\r\nViewer: {1}", lastIp, lastName));
 
-                    try
+                    ConnectionAttemptResult result = await ConnectToServerAsync(lastIp, lastName);
+                    if (result.Success)
                     {
-                        await Task.Delay(1000, token);
-                    }
-                    catch (TaskCanceledException)
-                    {
+                        RunOnUiThread(CloseReconnectWindowInternal);
                         return;
+                    }
+
+                    for (int seconds = 10; seconds > 0; seconds--)
+                    {
+                        if (token.IsCancellationRequested || isExiting)
+                            return;
+
+                        UpdateReconnectWindow(
+                            "Trying to reconnect",
+                            string.Format(
+                                "{0}\r\nRetrying in {1}s.\r\nClose this window to exit Viewer Client.",
+                                result.Message,
+                                seconds));
+
+                        try
+                        {
+                            await Task.Delay(1000, token);
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            return;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                lock (reconnectSync)
+                {
+                    if (ReferenceEquals(reconnectLoopCts, reconnectCts))
+                    {
+                        reconnectLoopCts = null;
                     }
                 }
             }
         }
+
         private void ShowReconnectWindow()
         {
             RunOnUiThread(() =>
