@@ -1,4 +1,4 @@
-﻿<Window x:Class="Monitorian.Core.Views.MainWindow"
+<Window x:Class="Monitorian.Core.Views.MainWindow"
 		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
 		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
 		xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
@@ -623,12 +623,33 @@
 								<ColumnDefinition Width="Auto"/>
 							</Grid.ColumnDefinitions>
 
-							<!-- Name -->
-							<controls:SwitchTextBox Grid.Column="0"
-													Height="22" Margin="8,5,0,5" HorizontalAlignment="Left" VerticalAlignment="Center"
+							<StackPanel Grid.Column="0"
+										Orientation="Horizontal"
+										VerticalAlignment="Center"
+										Margin="8,5,0,5">
+								<!-- Name -->
+								<controls:SwitchTextBox Height="22"
+													HorizontalAlignment="Left"
+													VerticalAlignment="Center"
 													Style="{StaticResource NameTextBoxStyle}"
-													TextWrapping="Wrap" MaxLength="96"
+													TextWrapping="Wrap"
+													MaxLength="96"
 													Text="{Binding Name, Mode=TwoWay}"/>
+
+								<Grid Width="16"
+									  Height="16"
+									  Margin="6,0,0,0"
+									  VerticalAlignment="Center"
+									  ToolTip="Viewer Client"
+									  Visibility="{Binding IsViewerClient, Mode=OneWay, Converter={StaticResource BooleanToVisibilityConverterKey}}">
+									<Ellipse Fill="#FF185FBF"/>
+									<Ellipse Width="9"
+										 Height="9"
+										 Fill="White"
+										 HorizontalAlignment="Center"
+										 VerticalAlignment="Center"/>
+								</Grid>
+							</StackPanel>
 
 							<StackPanel Grid.Column="1"
 										VerticalAlignment="Top"
@@ -781,3 +802,4 @@
 		</ListView>
 	</Grid>
 </Window>
+

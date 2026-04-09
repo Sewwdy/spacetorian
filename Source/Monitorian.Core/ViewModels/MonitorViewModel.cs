@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading.Tasks;
 using System.Windows;
 
@@ -51,6 +51,7 @@ public class MonitorViewModel : ViewModelBase
 	public byte MonitorIndex => _monitor.MonitorIndex;
 	public Rect MonitorRect => _monitor.MonitorRect;
 	public bool IsInternal => _monitor.IsInternal;
+	public bool IsViewerClient => DeviceInstanceId.StartsWith("NETWORK\\", StringComparison.OrdinalIgnoreCase);
 
 	#region Customization
 
