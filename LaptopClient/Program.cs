@@ -26,6 +26,8 @@ namespace SpacetorianViewerClient
         private ContextMenu trayMenu;
         private TcpClient client;
         private CancellationTokenSource cts;
+        private StreamWriter writer;
+        private readonly object writerLock = new object();
 
         private string lastIp = "127.0.0.1";
         private string lastName = Environment.MachineName;
@@ -121,7 +123,6 @@ namespace SpacetorianViewerClient
             }
             catch
             {
-                // Ignore storage read errors and continue with defaults.
             }
         }
 
@@ -138,7 +139,6 @@ namespace SpacetorianViewerClient
             }
             catch
             {
-                // Ignore storage write errors.
             }
         }
 
@@ -160,8 +160,14 @@ namespace SpacetorianViewerClient
                 trayIcon.Text = string.Format("Viewer Client: Connected to {0}", ipStr);
 
                 var stream = client.GetStream();
-                var writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
+                writer = new StreamWriter(stream, Encoding.UTF8) { AutoFlush = true };
                 await writer.WriteLineAsync("HELLO:" + name);
+
+                int? currentBrightness = TryGetCurrentBrightness();
+                if (currentBrightness.HasValue)
+                {
+                    SendBrightness(currentBrightness.Value);
+                }
 
                 _ = Task.Run(() => HandleConnectionAsync(cts.Token));
             }
@@ -190,11 +196,22 @@ namespace SpacetorianViewerClient
                         if (line == null)
                             break;
 
-                        if (line.StartsWith("SET_BRIGHTNESS:"))
+                        if (line == "GET_BRIGHTNESS")
+                        {
+                            int? currentBrightness = TryGetCurrentBrightness();
+                            if (currentBrightness.HasValue)
+                            {
+                                SendBrightness(currentBrightness.Value);
+                            }
+                        }
+                        else if (line.StartsWith("SET_BRIGHTNESS:"))
                         {
                             if (int.TryParse(line.Substring(15), out int brightness))
                             {
-                                SetBrightness(brightness);
+                                if (SetBrightness(brightness))
+                                {
+                                    SendBrightness(brightness);
+                                }
                             }
                         }
                     }
@@ -215,7 +232,50 @@ namespace SpacetorianViewerClient
             }
         }
 
-        private void SetBrightness(int brightness)
+        private int? TryGetCurrentBrightness()
+        {
+            try
+            {
+                var scope = new ManagementScope("root\\WMI");
+                var query = new SelectQuery("WmiMonitorBrightness");
+                using (var searcher = new ManagementObjectSearcher(scope, query))
+                using (var objectCollection = searcher.Get())
+                {
+                    foreach (ManagementObject mObj in objectCollection)
+                    {
+                        object value = mObj["CurrentBrightness"];
+                        if (value != null)
+                        {
+                            return Convert.ToInt32(value);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+            }
+
+            return null;
+        }
+
+        private void SendBrightness(int brightness)
+        {
+            try
+            {
+                if (writer == null || client == null || !client.Connected)
+                    return;
+
+                lock (writerLock)
+                {
+                    writer.WriteLine("BRIGHTNESS:" + brightness.ToString());
+                }
+            }
+            catch
+            {
+            }
+        }
+
+        private bool SetBrightness(int brightness)
         {
             try
             {
@@ -227,7 +287,7 @@ namespace SpacetorianViewerClient
                     foreach (ManagementObject mObj in objectCollection)
                     {
                         mObj.InvokeMethod("WmiSetBrightness", new object[] { uint.MaxValue, (byte)brightness });
-                        break;
+                        return true;
                     }
                 }
             }
@@ -235,6 +295,8 @@ namespace SpacetorianViewerClient
             {
                 Console.WriteLine("Brightness set error: " + ex.Message);
             }
+
+            return false;
         }
 
         private void OnExit(object sender, EventArgs e)
@@ -263,13 +325,15 @@ namespace SpacetorianViewerClient
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
+            Opacity = 0.97;
             Font = new Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, 204);
 
             bool darkMode = IsDarkModeEnabled();
-            Color backgroundColor = darkMode ? Color.FromArgb(32, 32, 32) : SystemColors.Window;
-            Color inputColor = darkMode ? Color.FromArgb(44, 44, 48) : Color.FromArgb(245, 245, 245);
-            Color textColor = darkMode ? Color.WhiteSmoke : SystemColors.ControlText;
-            Color accentColor = SystemColors.Highlight;
+            Color backgroundColor = darkMode ? Color.FromArgb(24, 24, 24) : Color.FromArgb(248, 248, 248);
+            Color surfaceColor = darkMode ? Color.FromArgb(34, 34, 34) : Color.FromArgb(252, 252, 252);
+            Color borderColor = darkMode ? Color.FromArgb(88, 88, 88) : Color.FromArgb(188, 188, 188);
+            Color textColor = darkMode ? Color.WhiteSmoke : Color.FromArgb(26, 26, 26);
+            Color accentColor = GetSystemAccentColor();
 
             BackColor = backgroundColor;
             ForeColor = textColor;
@@ -322,13 +386,13 @@ namespace SpacetorianViewerClient
             var lblIp = CreateLabel("Main PC IP", textColor);
             var lblName = CreateLabel("Viewer Name", textColor);
 
-            txtIp = CreateTextBox(defaultIp, inputColor, textColor);
-            txtName = CreateTextBox(defaultName, inputColor, textColor);
+            txtIp = CreateTextBox(defaultIp, surfaceColor, textColor);
+            txtName = CreateTextBox(defaultName, surfaceColor, textColor);
 
             fields.Controls.Add(lblIp, 0, 0);
-            fields.Controls.Add(txtIp, 1, 0);
+            fields.Controls.Add(CreateTextBoxHost(txtIp, borderColor, surfaceColor), 1, 0);
             fields.Controls.Add(lblName, 0, 1);
-            fields.Controls.Add(txtName, 1, 1);
+            fields.Controls.Add(CreateTextBoxHost(txtName, borderColor, surfaceColor), 1, 1);
 
             var buttonBar = new FlowLayoutPanel
             {
@@ -339,10 +403,10 @@ namespace SpacetorianViewerClient
                 WrapContents = false
             };
 
-            var btnConnect = CreatePrimaryButton("Connect", accentColor, darkMode);
+            var btnConnect = CreatePrimaryButton("Connect", accentColor);
             btnConnect.Click += OnConnectClicked;
 
-            var btnCancel = CreateSecondaryButton("Cancel", darkMode, textColor);
+            var btnCancel = CreateSecondaryButton("Cancel", darkMode, textColor, borderColor, surfaceColor);
             btnCancel.Click += (_, __) =>
             {
                 DialogResult = DialogResult.Cancel;
@@ -391,7 +455,7 @@ namespace SpacetorianViewerClient
                 Text = text,
                 ForeColor = color,
                 AutoSize = true,
-                Margin = new Padding(0, 9, 8, 0),
+                Margin = new Padding(0, 11, 8, 0),
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point, 204)
             };
         }
@@ -401,41 +465,69 @@ namespace SpacetorianViewerClient
             return new TextBox
             {
                 Text = value,
-                Width = 220,
-                Margin = new Padding(0, 4, 0, 8),
-                BorderStyle = BorderStyle.FixedSingle,
+                BorderStyle = BorderStyle.None,
                 BackColor = backColor,
                 ForeColor = foreColor,
-                Font = new Font("Segoe UI", 9.5F, FontStyle.Regular, GraphicsUnit.Point, 204)
+                Font = new Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, 204),
+                Dock = DockStyle.Fill,
+                Margin = Padding.Empty,
             };
         }
 
-        private static Button CreatePrimaryButton(string text, Color accent, bool darkMode)
+        private static Control CreateTextBoxHost(TextBox textBox, Color borderColor, Color fillColor)
         {
-            return new Button
+            var host = new Panel
+            {
+                Height = 30,
+                Margin = new Padding(0, 4, 0, 8),
+                Padding = new Padding(10, 7, 10, 7),
+                BackColor = borderColor,
+                Dock = DockStyle.Top,
+            };
+
+            var inner = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = fillColor,
+                Padding = new Padding(0),
+            };
+
+            inner.Controls.Add(textBox);
+            host.Controls.Add(inner);
+            return host;
+        }
+
+        private static Button CreatePrimaryButton(string text, Color accent)
+        {
+            var button = new Button
             {
                 Text = text,
                 AutoSize = true,
-                Padding = new Padding(14, 6, 14, 6),
+                Padding = new Padding(18, 7, 18, 7),
                 BackColor = accent,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
                 Margin = new Padding(8, 0, 0, 0)
             };
+            button.FlatAppearance.BorderSize = 0;
+            return button;
         }
 
-        private static Button CreateSecondaryButton(string text, bool darkMode, Color textColor)
+        private static Button CreateSecondaryButton(string text, bool darkMode, Color textColor, Color borderColor, Color surfaceColor)
         {
-            return new Button
+            var button = new Button
             {
                 Text = text,
                 AutoSize = true,
-                Padding = new Padding(14, 6, 14, 6),
-                BackColor = darkMode ? Color.FromArgb(56, 56, 56) : Color.FromArgb(233, 233, 233),
+                Padding = new Padding(18, 7, 18, 7),
+                BackColor = surfaceColor,
                 ForeColor = textColor,
                 FlatStyle = FlatStyle.Flat,
                 Margin = new Padding(8, 0, 0, 0)
             };
+            button.FlatAppearance.BorderColor = borderColor;
+            button.FlatAppearance.BorderSize = 1;
+            return button;
         }
 
         private static bool IsDarkModeEnabled()
@@ -459,6 +551,51 @@ namespace SpacetorianViewerClient
             return false;
         }
 
+        private static Color GetSystemAccentColor()
+        {
+            try
+            {
+                if (DwmGetColorizationColor(out uint rawColor, out _) == 0)
+                {
+                    byte a = (byte)((rawColor >> 24) & 0xFF);
+                    byte r = (byte)((rawColor >> 16) & 0xFF);
+                    byte g = (byte)((rawColor >> 8) & 0xFF);
+                    byte b = (byte)(rawColor & 0xFF);
+                    if (a == 0)
+                        a = 255;
+
+                    return Color.FromArgb(a, r, g, b);
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                object value = Registry.GetValue(
+                    @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Accent",
+                    "AccentColorMenu",
+                    null);
+
+                if (value is int accent)
+                {
+                    byte a = (byte)((accent >> 24) & 0xFF);
+                    byte r = (byte)(accent & 0xFF);
+                    byte g = (byte)((accent >> 8) & 0xFF);
+                    byte b = (byte)((accent >> 16) & 0xFF);
+                    if (a == 0)
+                        a = 255;
+                    return Color.FromArgb(a, r, g, b);
+                }
+            }
+            catch
+            {
+            }
+
+            return SystemColors.Highlight;
+        }
+
         private void ApplyWindows11Backdrop()
         {
             if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -470,10 +607,14 @@ namespace SpacetorianViewerClient
             int useDark = IsDarkModeEnabled() ? 1 : 0;
             int rounded = 2;
             int backdropType = 2;
+            int captionColor = ColorTranslator.ToWin32(IsDarkModeEnabled() ? Color.FromArgb(24, 24, 24) : Color.FromArgb(245, 245, 245));
+            int captionTextColor = ColorTranslator.ToWin32(IsDarkModeEnabled() ? Color.White : Color.Black);
 
             DwmSetWindowAttribute(Handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
             DwmSetWindowAttribute(Handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref rounded, sizeof(int));
             DwmSetWindowAttribute(Handle, DWMWA_SYSTEMBACKDROP_TYPE, ref backdropType, sizeof(int));
+            DwmSetWindowAttribute(Handle, DWMWA_CAPTION_COLOR, ref captionColor, sizeof(int));
+            DwmSetWindowAttribute(Handle, DWMWA_TEXT_COLOR, ref captionTextColor, sizeof(int));
 
             var margins = new MARGINS { cxLeftWidth = -1 };
             DwmExtendFrameIntoClientArea(Handle, ref margins);
@@ -481,6 +622,9 @@ namespace SpacetorianViewerClient
 
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
         private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
+        private const int DWMWA_BORDER_COLOR = 34;
+        private const int DWMWA_CAPTION_COLOR = 35;
+        private const int DWMWA_TEXT_COLOR = 36;
         private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -497,5 +641,8 @@ namespace SpacetorianViewerClient
 
         [DllImport("dwmapi.dll")]
         private static extern int DwmExtendFrameIntoClientArea(IntPtr hWnd, ref MARGINS pMarInset);
+
+        [DllImport("dwmapi.dll")]
+        private static extern int DwmGetColorizationColor(out uint pcrColorization, out bool pfOpaqueBlend);
     }
 }

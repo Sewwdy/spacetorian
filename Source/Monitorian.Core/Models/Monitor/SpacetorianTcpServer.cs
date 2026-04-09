@@ -89,7 +89,7 @@ internal static class SpacetorianTcpServer
 			var reader = new StreamReader(stream, Encoding.UTF8);
 
 			// Wait for HELLO message.
-			string name = string.Format("Laptop ({0})", endpoint.Split(':')[0]);
+			string name = string.Format("Viewer ({0})", endpoint.Split(':')[0]);
 			string firstLine = await reader.ReadLineAsync();
 			if (firstLine != null && firstLine.StartsWith("HELLO:"))
 			{
@@ -145,3 +145,4 @@ internal static class SpacetorianTcpServer
 		ConnectedMonitorsChanged?.Invoke(null, EventArgs.Empty);
 	}
 }
+
