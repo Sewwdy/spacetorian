@@ -2,6 +2,8 @@
 
 Spacetorian is a fork of Monitorian focused on remote brightness workflows and fork-specific UX updates.
 
+Spacetorian is made primarily for laptop setups where you use a laptop as a second monitor (for example via spacedesk or similar tools).
+
 ## Official Upstream
 
 - Original project: https://github.com/emoacht/Monitorian
@@ -65,3 +67,4 @@ Spacetorian is distributed under MIT.
 - Fork modifications: Sewwdy
 
 See `LICENSE.txt` for repository-level terms and `Source/Monitorian/Resources/License.txt` for in-app license text.
+
