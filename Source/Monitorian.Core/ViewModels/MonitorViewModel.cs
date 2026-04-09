@@ -29,19 +29,37 @@ public class MonitorViewModel : ViewModelBase
 
 	internal void Replace(IMonitor monitor)
 	{
-		if (monitor is { IsReachable: true })
+		if (monitor is null)
+			return;
+
+		var disposeMonitor = false;
+		lock (_lock)
 		{
-			lock (_lock)
+			// Network monitors can be reused across scans.
+			// Disposing the current monitor when it is the same instance breaks the active connection.
+			if (ReferenceEquals(this._monitor, monitor))
+			{
+				SetTopLeft();
+				OnPropertyChanged(string.Empty);
+				return;
+			}
+
+			if (monitor.IsReachable)
 			{
 				this._monitor.Dispose();
 				this._monitor = monitor;
 				SetTopLeft();
 				OnPropertyChanged(string.Empty);
 			}
+			else
+			{
+				disposeMonitor = true;
+			}
 		}
-		else
+
+		if (disposeMonitor)
 		{
-			monitor?.Dispose();
+			monitor.Dispose();
 		}
 	}
 
@@ -638,3 +656,4 @@ public class MonitorViewModel : ViewModelBase
 
 	#endregion
 }
+
