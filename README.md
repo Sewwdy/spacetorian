@@ -30,6 +30,15 @@ Spacetorian keeps the original Monitorian base and adds fork-specific behavior. 
   - closing reconnect window exits Viewer Client
 - Main client includes identification for Viewer Client-connected devices.
 
+## Screenshots
+
+Main client showing a connected Viewer Client device:
+
+![Main client with viewer device](Images/Screenshot_remotecontrol.png)
+
+Viewer Client connection window:
+
+![Viewer Client window](Images/Screenshot_viewerclient.png)
 ## Download And Install
 
 You do not need to build Spacetorian manually for normal usage.
@@ -67,4 +76,6 @@ Spacetorian is distributed under MIT.
 - Fork modifications: Sewwdy
 
 See `LICENSE.txt` for repository-level terms and `Source/Monitorian/Resources/License.txt` for in-app license text.
+
+
 
