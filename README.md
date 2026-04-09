@@ -28,19 +28,15 @@ Spacetorian keeps the original Monitorian base and adds fork-specific behavior. 
   - closing reconnect window exits Viewer Client
 - Main client includes identification for Viewer Client-connected devices.
 
-## Build Notes
+## Download And Install
 
-Main app solution:
+You do not need to build Spacetorian manually for normal usage.
 
-```powershell
-dotnet build .\Source\Monitorian.sln -c Release
-```
+- Download the latest release from: https://github.com/Sewwdy/spacetorian/releases
+- Open the release assets and download the installer package.
+- Run the installer to install Spacetorian.
 
-Viewer Client executable:
-
-```powershell
-& "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\Roslyn\csc.exe" /nologo /langversion:latest /target:winexe /out:"C:\Projects\spacetorian\ViewerClient\SpacetorianViewerClient.exe" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.Management.dll "C:\Projects\spacetorian\ViewerClient\Program.cs"
-```
+If you also distribute Viewer Client separately, include `ViewerClient/SpacetorianViewerClient.exe` from the same release build artifacts.
 
 ## Detection Of External Monitors
 
