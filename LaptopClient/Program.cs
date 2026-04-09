@@ -15,6 +15,7 @@ namespace SpacetorianViewerClient
     public class Program : Form
     {
         private const string SingleInstanceMutexName = @"Local\SpacetorianViewerClient";
+        private const string OpenWindowEventName = @"Local\SpacetorianViewerClient.OpenWindow";
 
         private static readonly string SettingsDirectoryPath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -28,6 +29,9 @@ namespace SpacetorianViewerClient
         private CancellationTokenSource cts;
         private StreamWriter writer;
         private readonly object writerLock = new object();
+        private EventWaitHandle openWindowEvent;
+        private RegisteredWaitHandle openWindowRegistration;
+        private ViewerConnectForm activeConnectDialog;
 
         private string lastIp = "127.0.0.1";
         private string lastName = Environment.MachineName;
@@ -40,6 +44,17 @@ namespace SpacetorianViewerClient
             {
                 if (!isCreated)
                 {
+                    try
+                    {
+                        using (var openWindowSignal = EventWaitHandle.OpenExisting(OpenWindowEventName))
+                        {
+                            openWindowSignal.Set();
+                        }
+                    }
+                    catch
+                    {
+                    }
+
                     return;
                 }
 
@@ -52,6 +67,20 @@ namespace SpacetorianViewerClient
         public Program()
         {
             LoadStoredConnection();
+
+            openWindowEvent = new EventWaitHandle(false, EventResetMode.AutoReset, OpenWindowEventName);
+            openWindowRegistration = ThreadPool.RegisterWaitForSingleObject(
+                openWindowEvent,
+                (_, __) =>
+                {
+                    if (!IsDisposed && IsHandleCreated)
+                    {
+                        BeginInvoke(new Action(OpenOrFocusViewerWindow));
+                    }
+                },
+                null,
+                Timeout.Infinite,
+                false);
 
             trayMenu = new ContextMenu();
             trayMenu.MenuItems.Add("Open Viewer Client", OnOpenViewerClient);
@@ -78,7 +107,7 @@ namespace SpacetorianViewerClient
             Load += (_, __) =>
             {
                 Hide();
-                BeginInvoke(new Action(() => OnOpenViewerClient(this, EventArgs.Empty)));
+                BeginInvoke(new Action(OpenOrFocusViewerWindow));
             };
         }
 
@@ -86,14 +115,31 @@ namespace SpacetorianViewerClient
         {
             if (e.Button == MouseButtons.Left)
             {
-                OnOpenViewerClient(sender, EventArgs.Empty);
+                OpenOrFocusViewerWindow();
             }
         }
 
         private void OnOpenViewerClient(object sender, EventArgs e)
         {
+            OpenOrFocusViewerWindow();
+        }
+
+        private void OpenOrFocusViewerWindow()
+        {
+            if (activeConnectDialog != null && !activeConnectDialog.IsDisposed)
+            {
+                if (activeConnectDialog.WindowState == FormWindowState.Minimized)
+                    activeConnectDialog.WindowState = FormWindowState.Normal;
+
+                activeConnectDialog.TopMost = true;
+                activeConnectDialog.Activate();
+                activeConnectDialog.TopMost = false;
+                return;
+            }
+
             using (var form = new ViewerConnectForm(lastIp, lastName))
             {
+                activeConnectDialog = form;
                 if (form.ShowDialog() == DialogResult.OK)
                 {
                     lastIp = form.IPAddress;
@@ -101,6 +147,7 @@ namespace SpacetorianViewerClient
                     SaveStoredConnection();
                     ConnectToServer(lastIp, lastName);
                 }
+                activeConnectDialog = null;
             }
         }
 
@@ -301,6 +348,11 @@ namespace SpacetorianViewerClient
 
         private void OnExit(object sender, EventArgs e)
         {
+            openWindowRegistration?.Unregister(null);
+            openWindowRegistration = null;
+            openWindowEvent?.Dispose();
+            openWindowEvent = null;
+
             trayIcon.Visible = false;
             trayIcon.Dispose();
             cts?.Cancel();
@@ -622,7 +674,6 @@ namespace SpacetorianViewerClient
 
         private const int DWMWA_USE_IMMERSIVE_DARK_MODE = 20;
         private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;
-        private const int DWMWA_BORDER_COLOR = 34;
         private const int DWMWA_CAPTION_COLOR = 35;
         private const int DWMWA_TEXT_COLOR = 36;
         private const int DWMWA_SYSTEMBACKDROP_TYPE = 38;
