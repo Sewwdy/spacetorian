@@ -278,7 +278,7 @@
     </Feature>
 
     <!-- Launch after installation -->
-    <Property Id="WixShellExecTarget" Value="$(var.Monitorian.TargetFileName)"/>
+    <Property Id="WixShellExecTarget" Value="[#MainExecutable]"/>
     <CustomAction Id="LaunchApplication" DllEntry="WixShellExec" Impersonate="yes" BinaryRef="Wix4UtilCA_X86"/>
 
     <!-- Clean Current User Run -->
@@ -290,4 +290,5 @@
     </InstallExecuteSequence>
   </Package>
 </Wix>
+
 
