@@ -62,7 +62,7 @@
       </Component>
 
       <Component Id="CoreLibrary" Guid="{1E9CB31F-C53B-4E83-B593-F30ADC7468CB}">
-        <File Id="CoreLibrary" Name="$(var.Monitorian.TargetName).Core.dll"
+        <File Id="CoreLibrary" Name="Monitorian.Core.dll"
               Source="$(var.Monitorian.TargetDir)" KeyPath="yes"/>
       </Component>
 
@@ -78,7 +78,7 @@
 
       <Component Id="VisualManifest" Guid="{69BD7D13-0EA9-46F3-9575-EBEEF24A839D}"
                  Condition="VEM = &quot;yes&quot;">
-        <File Id="VisualManifest" Name="$(var.Monitorian.TargetName).VisualElementsManifest.xml"
+        <File Id="VisualManifest" Name="Monitorian.VisualElementsManifest.xml"
               Source="$(var.Monitorian.TargetDir)" KeyPath="yes"/>
       </Component>
 
@@ -86,133 +86,133 @@
       <Directory Id="ResourcesFolder_ar" Name="ar"
                  FileSource="$(var.Monitorian.TargetDir)ar">
         <Component Id="CoreResourcesLibrary_ar" Guid="{9C15E424-AE58-4EF0-8CDC-2A590C5C7C2A}">
-          <File Id="CoreResourcesLibrary_ar" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_ar" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_ca" Name="ca"
                  FileSource="$(var.Monitorian.TargetDir)ca">
         <Component Id="CoreResourcesLibrary_ca" Guid="{7E91FC9C-C97E-49F8-813F-AA4EB37D60CD}">
-          <File Id="CoreResourcesLibrary_ca" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_ca" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_de" Name="de"
                  FileSource="$(var.Monitorian.TargetDir)de">
         <Component Id="CoreResourcesLibrary_de" Guid="{4BE0F7FF-08C3-461E-9FED-4037D40BEB45}">
-          <File Id="CoreResourcesLibrary_de" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_de" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_elGR" Name="el-GR"
                  FileSource="$(var.Monitorian.TargetDir)el-GR">
         <Component Id="CoreResourcesLibrary_elGR" Guid="{D8FA6F67-57B7-45AA-8C81-C323A50787DE}">
-          <File Id="CoreResourcesLibrary_elGR" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_elGR" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_es" Name="es"
                  FileSource="$(var.Monitorian.TargetDir)es">
         <Component Id="CoreResourcesLibrary_es" Guid="{4329EAB1-6FC9-41F4-8A6E-77FA6C67B15C}">
-          <File Id="CoreResourcesLibrary_es" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_es" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_faIR" Name="fa-IR"
                  FileSource="$(var.Monitorian.TargetDir)fa-IR">
         <Component Id="CoreResourcesLibrary_faIR" Guid="{40146807-5D83-4620-A167-544C0C85CBE7}">
-          <File Id="CoreResourcesLibrary_faIR" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_faIR" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_fr" Name="fr"
                  FileSource="$(var.Monitorian.TargetDir)fr">
         <Component Id="CoreResourcesLibrary_fr" Guid="{B7502D66-6FE8-4E0F-A8D0-42AFFBE82895}">
-          <File Id="CoreResourcesLibrary_fr" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_fr" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_it" Name="it"
                  FileSource="$(var.Monitorian.TargetDir)it">
         <Component Id="CoreResourcesLibrary_it" Guid="{7C992E17-3060-405F-BEAB-0F3EF78F307E}">
-          <File Id="CoreResourcesLibrary_it" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_it" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_jaJP" Name="ja-JP"
                  FileSource="$(var.Monitorian.TargetDir)ja-JP">
         <Component Id="CoreResourcesLibrary_jaJP" Guid="{AFE32597-13D8-40D0-887E-9C2B5AB0F9B6}">
-          <File Id="CoreResourcesLibrary_jaJP" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_jaJP" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_koKR" Name="ko-KR"
                  FileSource="$(var.Monitorian.TargetDir)ko-KR">
         <Component Id="CoreResourcesLibrary_koKR" Guid="{F2C43EB4-5522-4A42-A63F-0C229DB356A5}">
-          <File Id="CoreResourcesLibrary_koKR" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_koKR" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_nlNL" Name="nl-NL"
                  FileSource="$(var.Monitorian.TargetDir)nl-NL">
         <Component Id="CoreResourcesLibrary_nlNL" Guid="{A30E912E-3548-4C10-B92E-E5F4735FE253}">
-          <File Id="CoreResourcesLibrary_nlNL" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_nlNL" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_plPL" Name="pl-PL"
                  FileSource="$(var.Monitorian.TargetDir)pl-PL">
         <Component Id="CoreResourcesLibrary_plPL" Guid="{BFD709FC-0C56-4520-BCBD-657E15CDD02A}">
-          <File Id="CoreResourcesLibrary_plPL" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_plPL" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_ptBR" Name="pt-BR"
                  FileSource="$(var.Monitorian.TargetDir)pt-BR">
         <Component Id="CoreResourcesLibrary_ptBR" Guid="{1F6F008E-29FE-4BA7-8135-E9D1945199C3}">
-          <File Id="CoreResourcesLibrary_ptBR" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_ptBR" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_ro" Name="ro"
                  FileSource="$(var.Monitorian.TargetDir)ro">
         <Component Id="CoreResourcesLibrary_ro" Guid="{02DC2C14-9F16-4A09-9557-23A38426C77F}">
-          <File Id="CoreResourcesLibrary_ro" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_ro" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_ruRU" Name="ru-RU"
                  FileSource="$(var.Monitorian.TargetDir)ru-RU">
         <Component Id="CoreResourcesLibrary_ruRU" Guid="{CC11D857-3E32-44AA-8EA3-B1E2D9686B73}">
-          <File Id="CoreResourcesLibrary_ruRU" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_ruRU" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_sq" Name="sq"
                  FileSource="$(var.Monitorian.TargetDir)sq">
         <Component Id="CoreResourcesLibrary_sq" Guid="{75C465E2-57E9-4E9F-9C1F-F1EF7F402454}">
-          <File Id="CoreResourcesLibrary_sq" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_sq" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_svSE" Name="sv-SE"
                  FileSource="$(var.Monitorian.TargetDir)sv-SE">
         <Component Id="CoreResourcesLibrary_svSE" Guid="{5C74A446-22F2-46EF-9D07-241142FE66B7}">
-          <File Id="CoreResourcesLibrary_svSE" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_svSE" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_trTR" Name="tr-TR"
                  FileSource="$(var.Monitorian.TargetDir)tr-TR">
         <Component Id="CoreResourcesLibrary_trTR" Guid="{7B5931FE-7FC1-4C3C-BBEB-DADB9EDA8AE6}">
-          <File Id="CoreResourcesLibrary_trTR" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_trTR" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_ukUA" Name="uk-UA"
                  FileSource="$(var.Monitorian.TargetDir)uk-UA">
         <Component Id="CoreResourcesLibrary_ukUA" Guid="{6F8729D5-94CD-4CEA-9DEA-BCED7C809806}">
-          <File Id="CoreResourcesLibrary_ukUA" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_ukUA" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_viVN" Name="vi-VN"
                  FileSource="$(var.Monitorian.TargetDir)vi-VN">
         <Component Id="CoreResourcesLibrary_viVN" Guid="{48D1E1AF-BCEF-431D-977A-68B289B78BD0}">
-          <File Id="CoreResourcesLibrary_viVN" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_viVN" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_zhHans" Name="zh-Hans"
                  FileSource="$(var.Monitorian.TargetDir)zh-Hans">
         <Component Id="CoreResourcesLibrary_zhHans" Guid="{D4727E68-157A-495D-B9B8-0CD100291E5E}">
-          <File Id="CoreResourcesLibrary_zhHans" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_zhHans" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
       <Directory Id="ResourcesFolder_zhHant" Name="zh-Hant"
                  FileSource="$(var.Monitorian.TargetDir)zh-Hant">
         <Component Id="CoreResourcesLibrary_zhHant" Guid="{79A2A06D-52F9-4127-B8F3-F7993F121687}">
-          <File Id="CoreResourcesLibrary_zhHant" Name="$(var.Monitorian.TargetName).Core.resources.dll" KeyPath="yes"/>
+          <File Id="CoreResourcesLibrary_zhHant" Name="Monitorian.Core.resources.dll" KeyPath="yes"/>
         </Component>
       </Directory>
     </DirectoryRef>
@@ -290,3 +290,4 @@
     </InstallExecuteSequence>
   </Package>
 </Wix>
+
