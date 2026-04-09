@@ -246,3 +246,6 @@ AGENTS.md
 
 # Local screenshot captures
 screenshotscodex/
+
+# Local release packaging output
+release-assets/
